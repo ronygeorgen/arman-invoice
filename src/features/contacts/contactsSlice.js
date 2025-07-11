@@ -2,6 +2,7 @@ import { createSlice } from '@reduxjs/toolkit';
 
 const initialState = {
   contacts: [],
+  selectedContact: null,
   loading: false,
   error: null,
   searchQuery: '',
@@ -13,6 +14,9 @@ const contactsSlice = createSlice({
   reducers: {
     setContacts: (state, action) => {
       state.contacts = action.payload;
+    },
+     setSelectedContact: (state, action) => {  // New reducer
+      state.selectedContact = action.payload;
     },
     setSearchQuery: (state, action) => {
       state.searchQuery = action.payload;
@@ -30,5 +34,5 @@ const contactsSlice = createSlice({
   },
 });
 
-export const { setContacts, setSearchQuery, setLoading, setError, resetContacts } = contactsSlice.actions;
+export const { setContacts, setSelectedContact, setSearchQuery, setLoading, setError, resetContacts } = contactsSlice.actions;
 export default contactsSlice.reducer; // Changed from export default contactsSlice
