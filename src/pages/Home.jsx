@@ -10,6 +10,8 @@ import ServiceCheckbox from "../components/ServiceCheckbox"
 import { setSelectedContact } from "../features/contacts/contactsSlice"
 import { axiosInstance } from "../services/api"
 import { Search, User, FileText, Plus, Check, Loader2, Sparkles } from "lucide-react"
+import SelectedServicesList from "../components/SelectedServicesList"
+import AssignedPeopleSelector from '../components/AssignedPeopleSelector';
 
 const Home = () => {
   const dispatch = useDispatch()
@@ -47,27 +49,41 @@ const Home = () => {
     }
   }, [debouncedServiceSearch, dispatch])
 
+  const {
+    selectedPeople = [], // Add this line
+  } = useSelector((state) => state.assignedPeople || {});
+
   const handleCreateInvoice = async () => {
-    if (!selectedContact || selectedServices.length === 0) {
-      alert("Please select a contact and at least one service")
-      return
-    }
-
-    const invoiceData = {
-      title: invoiceTitle,
-      contact_id: selectedContact.id,
-      service_ids: selectedServices,
-    }
-
-    try {
-      const response = await axiosInstance.post("/save-invoice/", invoiceData)
-      alert("Invoice created successfully!")
-      console.log("Invoice response:", response.data)
-    } catch (error) {
-      console.error("Error creating invoice:", error)
-      alert("Failed to create invoice")
-    }
+  if (!selectedContact || selectedServices.length === 0 ) {
+    alert("Please select a contact and at least one service");
+    return;
   }
+
+  // Prepare line items with prices
+  const line_items = selectedServices.map(service => ({
+    service_id: service.id,
+    price: parseFloat(service.price) || 0,
+    quantity: 1 // You can add quantity field if needed
+  }));
+
+  const assigned_people_ids = selectedPeople.map(person => person.id);
+
+  const invoiceData = {
+    title: invoiceTitle,
+    contact_id: selectedContact.id,
+    assigned_to: assigned_people_ids,
+    line_items, // Send the array of services with prices
+  };
+
+  try {
+    const response = await axiosInstance.post("/create/job/", invoiceData);
+    alert("Invoice created successfully!");
+    console.log("Invoice response:", response.data);
+  } catch (error) {
+    console.error("Error creating invoice:", error);
+    alert("Failed to create invoice");
+  }
+};
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
@@ -212,7 +228,7 @@ const Home = () => {
               </div>
 
               {/* Services List */}
-              <div className="space-y-3">
+              {/* <div className="space-y-3">
                 {services.length > 0 ? (
                   <div className="bg-white rounded-2xl border border-gray-200 p-4 space-y-3">
                     {services.map((service) => (
@@ -228,8 +244,32 @@ const Home = () => {
                     </div>
                   )
                 )}
-              </div>
+              </div> */}
             </div>
+
+            <div className="space-y-3">
+              {/* Existing Services Search and List */}
+              {services.length > 0 ? (
+                <div className="bg-white rounded-2xl border border-gray-200 p-4 space-y-3">
+                  {services.map((service) => (
+                    <ServiceCheckbox key={service.id} service={service} />
+                  ))}
+                </div>
+              ) : (
+                !servicesLoading &&
+                serviceSearch && (
+                  <div className="text-center py-8 text-gray-500">
+                    <Search className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                    <p>No services found</p>
+                  </div>
+                )
+              )}
+              
+              {/* Add this new Selected Services List */}
+              <SelectedServicesList />
+            </div>
+
+            <AssignedPeopleSelector />
 
             {/* Create Invoice Button */}
             <div className="pt-6">
@@ -250,15 +290,16 @@ const Home = () => {
 
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-8">
+          {/* In your Home component's stats cards section */}
           <div className="bg-white/70 backdrop-blur-sm rounded-2xl p-6 border border-white/20">
             <div className="flex items-center gap-3">
-              <div className="p-3 bg-blue-100 rounded-xl">
-                <User className="w-6 h-6 text-blue-600" />
+              <div className="p-3 bg-purple-100 rounded-xl">
+                <Plus className="w-6 h-6 text-purple-600" />
               </div>
               <div>
-                <p className="text-sm text-gray-600">Selected Contact</p>
+                <p className="text-sm text-gray-600">Total Amount</p>
                 <p className="font-semibold text-gray-900">
-                  {selectedContact ? `${selectedContact.first_name} ${selectedContact.last_name}` : "None"}
+                  ${selectedServices.reduce((total, service) => total + (parseFloat(service.price) || 0), 0).toFixed(2)}
                 </p>
               </div>
             </div>
