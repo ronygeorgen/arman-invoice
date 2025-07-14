@@ -12,6 +12,8 @@ import { axiosInstance } from "../services/api"
 import { Search, User, FileText, Plus, Check, Loader2, Sparkles } from "lucide-react"
 import SelectedServicesList from "../components/SelectedServicesList"
 import AssignedPeopleSelector from '../components/AssignedPeopleSelector';
+import { resetSelectedServices } from '../features/fservices/servicesSlice';
+import { resetSelectedPeople } from '../features/assignedPeople/assignedPeopleSlice';
 
 const Home = () => {
   const dispatch = useDispatch()
@@ -60,29 +62,46 @@ const Home = () => {
   }
 
   // Prepare line items with prices
-  const line_items = selectedServices.map(service => ({
-    service_id: service.id,
+  const service = selectedServices.map(service => ({
+    // service_id: service.id,
+    name: service.name,
+    description: service.description,
     price: parseFloat(service.price) || 0,
     quantity: 1 // You can add quantity field if needed
   }));
 
-  const assigned_people_ids = selectedPeople.map(person => person.id);
+  console.log("Selected Services:", service);
+  
+  const assigned_people_ids = selectedPeople.map(person => person.user_id);
 
   const invoiceData = {
     title: invoiceTitle,
-    contact_id: selectedContact.id,
+    contact_id: selectedContact.contact_id,
     assigned_to: assigned_people_ids,
-    line_items, // Send the array of services with prices
+    service, // Send the array of services with prices
   };
 
   try {
     const response = await axiosInstance.post("/create/job/", invoiceData);
     alert("Invoice created successfully!");
     console.log("Invoice response:", response.data);
+    resetForm();
   } catch (error) {
     console.error("Error creating invoice:", error);
     alert("Failed to create invoice");
   }
+};
+
+const resetForm = () => {
+  
+  setInvoiceTitle("");
+  setContactSearch("");
+  setServiceSearch("");
+  
+  
+  dispatch(setSelectedContact(null)); 
+  dispatch(resetSelectedServices()); 
+  dispatch(resetSelectedPeople()); 
 };
 
   return (

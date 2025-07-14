@@ -17,12 +17,14 @@ const ServiceCheckbox = ({ service }) => {
     }
   }, [isSelected, selectedServices, service.id]);
 
-  const handleToggle = () => {
-    dispatch(toggleServiceSelection({ 
-      id: service.id, 
-      price: price || service.price || 0 
-    }));
-  };
+const handleToggle = () => {
+  dispatch(toggleServiceSelection({
+    id: service.id,
+    name: service.name,
+    description: service.description,
+    price: service.price
+  }));
+};
 
   const handlePriceChange = (e) => {
     const newPrice = e.target.value;

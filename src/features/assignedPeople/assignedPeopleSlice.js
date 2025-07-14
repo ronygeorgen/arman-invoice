@@ -46,6 +46,9 @@ const assignedPeopleSlice = createSlice({
       state.people = [];
       state.searchQuery = '';
     },
+    resetSelectedPeople: (state) => {
+    state.selectedPeople = [];
+    }
   },
 });
 
@@ -56,7 +59,8 @@ export const {
   setSearchQuery, 
   setLoading, 
   setError, 
-  resetPeople 
+  resetPeople,
+  resetSelectedPeople 
 } = assignedPeopleSlice.actions;
 
 export default assignedPeopleSlice.reducer;

@@ -27,15 +27,20 @@ export const servicesSlice = createSlice({
       state.error = action.payload;
     },
     toggleServiceSelection: (state, action) => {
-      const { id, price } = action.payload;
-      const existingIndex = state.selectedServices.findIndex(item => item.id === id);
+      const service = action.payload;
+      const existingIndex = state.selectedServices.findIndex(item => item.id === service.id);
       
       if (existingIndex >= 0) {
         // Remove if already exists
         state.selectedServices.splice(existingIndex, 1);
       } else {
-        // Add new service with price
-        state.selectedServices.push({ id, price: price || 0 });
+        // Add new service with all details
+        state.selectedServices.push({
+          id: service.id,
+          name: service.name,
+          description: service.description,
+          price: service.price || 0
+        });
       }
     },
     setServices: (state, action) => {
@@ -59,6 +64,9 @@ export const servicesSlice = createSlice({
         item => item.id !== action.payload
       );
     },
+    resetSelectedServices: (state) => {
+      state.selectedServices = [];
+    },
     resetServices: (state) => {
       state.services = [];
       state.selectedServices = [];
@@ -75,7 +83,8 @@ export const {
   toggleServiceSelection,
   updateServicePrice,
   removeSelectedService,
-  resetServices
+  resetServices,
+  resetSelectedServices
 } = servicesSlice.actions;
 
 export default servicesSlice.reducer;
