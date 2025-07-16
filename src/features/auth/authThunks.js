@@ -1,5 +1,5 @@
 import { axiosInstance } from "../../services/api";
-import { setCredentials, setLoading, setError } from "./authSlice";
+import { setCredentials, setLoading, setError, logout } from "./authSlice";
 
 export const login = (credentials) => async (dispatch) => {
   try {

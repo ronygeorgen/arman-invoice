@@ -14,7 +14,8 @@ import SelectedServicesList from "../components/SelectedServicesList"
 import AssignedPeopleSelector from '../components/AssignedPeopleSelector';
 import { resetSelectedServices } from '../features/fservices/servicesSlice';
 import { resetSelectedPeople } from '../features/assignedPeople/assignedPeopleSlice';
-
+import { Link } from 'react-router-dom';
+import { logoutUser } from '../features/auth/authThunks';
 const Home = () => {
   const dispatch = useDispatch()
   const [invoiceTitle, setInvoiceTitle] = useState("")
@@ -26,6 +27,10 @@ const Home = () => {
 
   // Safely access Redux state with defaults
   const { contacts = [], selectedContact, loading: contactsLoading } = useSelector((state) => state.contacts || {})
+
+  const handleLogout = () => {
+  dispatch(logoutUser());
+};
 
   const {
     services = [],
@@ -108,8 +113,40 @@ const resetForm = () => {
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
         {/* Make Navbar fixed and add z-index to ensure it stays above other content */}
         <div className="fixed top-0 left-0 right-0 z-50">
-            <Navbar />
+  <nav className="bg-white shadow-sm">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="flex justify-between h-16">
+        <div className="flex items-center">
+          <div className="flex-shrink-0 flex items-center">
+            <span className="text-xl font-bold text-indigo-600">Work Order Creator</span>
+          </div>
+          <div className="hidden sm:ml-6 sm:flex sm:space-x-8">
+            <Link
+              to="/"
+              className="border-indigo-500 text-gray-900 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium"
+            >
+              Invoice
+            </Link>
+            <Link
+              to="/payroll"
+              className="border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium"
+            >
+              Payroll
+            </Link>
+          </div>
         </div>
+        <div className="flex items-center">
+          <button
+            onClick={handleLogout}
+            className="px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+          >
+            Logout
+          </button>
+        </div>
+      </div>
+    </div>
+  </nav>
+</div>
         
       {/* Hero Section */}
       
