@@ -5,23 +5,22 @@ import Home from './pages/Home';
 import PayrollPage from './components/PayrollPage';
 
 const App = () => {
-  // Safely access the auth state
-  const { accessToken } = useSelector((state) => state.auth || {});
+  const { isAuthenticated } = useSelector((state) => state.auth);
 
   return (
     <Router>
       <Routes>
         <Route
           path="/"
-          element={accessToken ? <Home /> : <Navigate to="/login" replace />}
+          element={isAuthenticated ? <Home /> : <Navigate to="/login" replace />}
         />
         <Route
           path="/login"
-          element={!accessToken ? <Login /> : <Navigate to="/" replace />}
+          element={!isAuthenticated ? <Login /> : <Navigate to="/" replace />}
         />
         <Route
           path="/payroll"
-          element={accessToken ? <PayrollPage /> : <Navigate to="/login" replace />}
+          element={isAuthenticated ? <PayrollPage /> : <Navigate to="/login" replace />}
         />
       </Routes>
     </Router>
