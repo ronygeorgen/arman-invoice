@@ -38,7 +38,7 @@ axiosInstance.interceptors.response.use(
       
       try {
         // Verify your actual refresh endpoint
-        const refreshEndpoint = '/api/auth/refresh/'; // Adjust this!
+        const refreshEndpoint = '/auth/refresh/'; // Adjust this!
         const res = await axiosInstance.post(refreshEndpoint);
         
         const newAccessToken = res.data.access;
