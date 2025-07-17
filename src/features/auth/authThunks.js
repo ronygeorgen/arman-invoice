@@ -14,6 +14,7 @@ export const login = (credentials) => async (dispatch) => {
       dispatch(setCredentials({
         user: { username: credentials.username },
         accessToken: response.data.access,
+        refreshToken: response.data.refresh,
       }));
       return { success: true };
     }
