@@ -15,7 +15,7 @@ axiosInstance.interceptors.response.use(
           throw new Error('No refresh token available');
         }
 
-        const response = await axiosInstance.post('/token/refresh/', {
+        const response = await axiosInstance.post('/auth/refresh/', {
           refresh: refreshToken
         });
         
