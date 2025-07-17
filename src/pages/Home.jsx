@@ -27,6 +27,7 @@ const Home = () => {
 
   // Safely access Redux state with defaults
   const { contacts = [], selectedContact, loading: contactsLoading } = useSelector((state) => state.contacts || {})
+  const [isFirstTime, setIsFirstTime] = useState(false);
 
   const handleLogout = () => {
   dispatch(logoutUser());
@@ -84,6 +85,7 @@ const Home = () => {
     contact_id: selectedContact.contact_id,
     assigned_to: assigned_people_ids,
     service, // Send the array of services with prices
+    is_first_time: isFirstTime,
   };
 
   try {
@@ -95,7 +97,7 @@ const Home = () => {
     console.error("Error creating invoice:", error);
     alert("Failed to create invoice");
   }
-};
+}; 
 
 const resetForm = () => {
   
@@ -125,7 +127,7 @@ const resetForm = () => {
               to="/"
               className="border-indigo-500 text-gray-900 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium"
             >
-              Invoice
+              Work Order Creation
             </Link>
             <Link
               to="/payroll"
@@ -161,8 +163,8 @@ const resetForm = () => {
                 <FileText className="w-6 h-6 text-white" />
               </div>
               <div>
-                <h2 className="text-2xl font-bold text-white">New Invoice</h2>
-                <p className="text-blue-100">Fill in the details below to create your invoice</p>
+                <h2 className="text-2xl font-bold text-white">New Work Order Creation</h2>
+                <p className="text-blue-100">Fill in the details below to create your Work Order </p>
               </div>
             </div>
           </div>
@@ -172,7 +174,7 @@ const resetForm = () => {
             <div className="space-y-3">
               <label className="flex items-center gap-2 text-sm font-semibold text-gray-700">
                 <FileText className="w-4 h-4" />
-                Invoice Title
+                Work Order Title
               </label>
               <div className="relative">
                 <input
@@ -180,7 +182,7 @@ const resetForm = () => {
                   className="w-full px-4 py-4 bg-gray-50/50 border border-gray-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 text-gray-900 placeholder-gray-500"
                   value={invoiceTitle}
                   onChange={(e) => setInvoiceTitle(e.target.value)}
-                  placeholder="Enter a descriptive title for your invoice"
+                  placeholder="Enter a descriptive title for your Work Order"
                 />
               </div>
             </div>
@@ -327,6 +329,20 @@ const resetForm = () => {
 
             <AssignedPeopleSelector />
 
+            {/* First Time Work Order Checkbox */}
+            <div className="flex items-center space-x-2 pt-4">
+              <input
+                type="checkbox"
+                id="firstTimeCheckbox"
+                checked={isFirstTime}
+                onChange={(e) => setIsFirstTime(e.target.checked)}
+                className="h-5 w-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+              />
+              <label htmlFor="firstTimeCheckbox" className="text-sm font-medium text-gray-700">
+                Is it your first time work order creation?
+              </label>
+            </div>
+
             {/* Create Invoice Button */}
             <div className="pt-6">
               <button
@@ -337,7 +353,7 @@ const resetForm = () => {
               >
                 <div className="flex items-center justify-center gap-2">
                   <FileText className="w-5 h-5" />
-                  Create Invoice
+                  Create Work Order
                 </div>
               </button>
             </div>
