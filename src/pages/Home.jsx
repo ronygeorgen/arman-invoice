@@ -355,9 +355,7 @@ const resetForm = () => {
                 disabled={
                   !invoiceTitle || 
                   !selectedContact || 
-                  selectedServices.length === 0 || 
-                  (selectedPeople.length > 0 && !isAssignmentValid) ||
-                  isAssignmentValidating
+                  selectedServices.length === 0
                 }
                 className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 disabled:from-gray-300 disabled:to-gray-400 text-white font-semibold py-4 px-8 rounded-2xl transition-all duration-200 transform hover:scale-[1.02] disabled:scale-100 disabled:cursor-not-allowed shadow-lg hover:shadow-xl disabled:shadow-none"
               >
