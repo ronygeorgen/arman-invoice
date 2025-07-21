@@ -5,7 +5,9 @@ import {
   togglePersonSelection, 
   removeSelectedPerson,
   setSearchQuery,
-  resetPeople
+  resetPeople,
+  resetValidation,
+  setValidationStatus,
 } from "../features/assignedPeople/assignedPeopleSlice";
 import { searchAssignedPeople } from "../features/assignedPeople/assignedPeopleThunks";
 import { useDebounce } from "../hooks/useDebounce";
@@ -48,22 +50,35 @@ const AssignedPeopleSelector = () => {
   }, [selectedPeople]);
 
   const validateAssignedPeople = async () => {
-    try {
-      setIsValidating(true);
-      const response = await axiosInstance.post("/create/job/validations/", {
-        assigned_to: selectedPeople.map(person => person.user_id)
-      });
-      
-      setIsValid(response.data.success);
-      setValidationMessages(response.data.messages || []);
-    } catch (error) {
-      console.error("Validation failed:", error);
-      setIsValid(false);
-      setValidationMessages(["Validation failed. Please try again."]);
-    } finally {
-      setIsValidating(false);
-    }
-  };
+  if (selectedPeople.length === 0) {
+    dispatch(resetValidation());
+    return;
+  }
+
+  try {
+    setIsValidating(true);
+    const response = await axiosInstance.post("/create/job/validations/", {
+      assigned_to: selectedPeople.map(person => person.user_id)
+    });
+    
+    // Check if any validation failed
+    const anyInvalid = response.data.messages?.some(msg => 
+      msg.includes('No commission rule') || 
+      msg.toLowerCase().includes('invalid')
+    );
+    
+    // Update Redux state
+    dispatch(setValidationStatus(!anyInvalid && response.data.success));
+    setValidationMessages(response.data.messages || []);
+    
+  } catch (error) {
+    console.error("Validation failed:", error);
+    dispatch(setValidationStatus(false));
+    setValidationMessages(["Validation failed. Please try again."]);
+  } finally {
+    setIsValidating(false);
+  }
+};
 
   const handleTogglePerson = (person) => {
     dispatch(togglePersonSelection(person));
@@ -72,6 +87,7 @@ const AssignedPeopleSelector = () => {
 
   const handleRemovePerson = (personId) => {
     dispatch(removeSelectedPerson(personId));
+     dispatch(resetValidation());
   };
 
   return (

@@ -350,22 +350,24 @@ const resetForm = () => {
             {/* Create Invoice Button */}
             <div className="pt-6">
               <button
-                type="button"
-                onClick={handleCreateInvoice}
-                disabled={
-                  !invoiceTitle || 
-                  !selectedContact || 
-                  selectedServices.length === 0 || 
-                  (selectedPeople.length > 0 && !isAssignmentValid) ||
-                  isAssignmentValidating
-                }
-                className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 disabled:from-gray-300 disabled:to-gray-400 text-white font-semibold py-4 px-8 rounded-2xl transition-all duration-200 transform hover:scale-[1.02] disabled:scale-100 disabled:cursor-not-allowed shadow-lg hover:shadow-xl disabled:shadow-none"
-              >
-                <div className="flex items-center justify-center gap-2">
-                  <FileText className="w-5 h-5" />
-                  {isAssignmentValidating ? 'Validating...' : 'Create Work Order'}
-                </div>
-              </button>
+  type="button"
+  onClick={handleCreateInvoice}
+  disabled={
+    !invoiceTitle || 
+    !selectedContact || 
+    selectedServices.length === 0 || 
+    (selectedPeople.length > 0 && isAssignmentValid === false)
+  }
+  className={`w-full ${
+    selectedPeople.length > 0 && isAssignmentValid === false
+      ? 'bg-red-500 hover:bg-red-600'
+      : 'bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700'
+  } text-white font-semibold py-4 px-8 rounded-2xl transition-all duration-200 disabled:bg-gray-400 disabled:cursor-not-allowed`}
+>
+  {selectedPeople.length > 0 && isAssignmentValid === false 
+    ? 'Fix Assignment Issues' 
+    : 'Create Work Order'}
+</button>
             </div>
           </div>
         </div>

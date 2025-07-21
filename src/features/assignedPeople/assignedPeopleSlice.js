@@ -1,12 +1,14 @@
-// assignedPeopleSlice.js
 import { createSlice } from '@reduxjs/toolkit';
+// Remove the problematic import since searchAssignedPeople is already in thunks
 
 const initialState = {
   people: [],
-  selectedPeople: [], // Array to store multiple selected people
+  selectedPeople: [],
   loading: false,
   error: null,
   searchQuery: '',
+  isValid: true,
+  validationMessages: []
 };
 
 const assignedPeopleSlice = createSlice({
@@ -21,17 +23,24 @@ const assignedPeopleSlice = createSlice({
       const existingIndex = state.selectedPeople.findIndex(p => p.id === person.id);
       
       if (existingIndex >= 0) {
-        // Remove if already exists
         state.selectedPeople.splice(existingIndex, 1);
       } else {
-        // Add new person
         state.selectedPeople.push(person);
       }
     },
     removeSelectedPerson: (state, action) => {
+      const personId = action.payload;
       state.selectedPeople = state.selectedPeople.filter(
-        person => person.id !== action.payload
+        person => person.id !== personId
       );
+      state.isValid = state.selectedPeople.length === 0 ? true : state.isValid;
+    },
+    resetValidation: (state) => {
+      state.isValid = true;
+      state.validationMessages = [];
+    },
+    setValidationStatus: (state, action) => {
+      state.isValid = action.payload;
     },
     setSearchQuery: (state, action) => {
       state.searchQuery = action.payload;
@@ -47,15 +56,20 @@ const assignedPeopleSlice = createSlice({
       state.searchQuery = '';
     },
     resetSelectedPeople: (state) => {
-    state.selectedPeople = [];
+      state.selectedPeople = [];
+      state.isValid = true;
+      state.validationMessages = [];
     }
   },
+  // Remove the extraReducers section entirely since we don't need it
 });
 
 export const { 
   setPeople, 
   togglePersonSelection,
   removeSelectedPerson,
+  resetValidation,
+  setValidationStatus,
   setSearchQuery, 
   setLoading, 
   setError, 
