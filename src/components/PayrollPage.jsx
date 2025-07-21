@@ -37,6 +37,9 @@ const PayrollPage = () => {
   const [editingRuleIndex, setEditingRuleIndex] = useState(null);
   const modalContentRef = useRef(null);
 
+  const [originalCommissionRules, setOriginalCommissionRules] = useState([]);
+
+
   useEffect(() => {
     dispatch(fetchPayrollData());
   }, [dispatch]);
@@ -105,8 +108,11 @@ const PayrollPage = () => {
   };
 
   const handleManageCommission = (user) => {
+
+    const original = user.commission_rules ? JSON.parse(JSON.stringify(user.commission_rules)) : [];
+    setOriginalCommissionRules(original);
+    setCommissionRules(original); // editable version
     setSelectedUser(user);
-    setCommissionRules(user.commission_rules ? JSON.parse(JSON.stringify(user.commission_rules)) : []);
     setShowCommissionModal(true);
     setEditingRuleIndex(null);
   };
@@ -135,31 +141,16 @@ const PayrollPage = () => {
   };
 
  const handleRemoveCommissionRule = async (index) => {
-  try {
     const newRules = [...commissionRules];
     newRules.splice(index, 1);
-    
-    // Immediately call the API to delete
-    await axiosInstance.put(
-      `/payroll/commission/${selectedUser.user_id}/`,
-      {
-        commission_rules: newRules.map(rule => ({
-          num_other_employees: rule.num_other_employees,
-          commission_percentage: parseFloat(rule.commission_percentage)
-        }))
-      }
-    );
     
     // Update local state only after successful API call
     setCommissionRules(newRules);
     if (editingRuleIndex === index) {
       setEditingRuleIndex(null);
-    }
-    
-    // Refresh the data
-    dispatch(fetchPayrollData());
-  } catch (error) {
-    console.error('Error removing commission rule:', error);
+    } else if (editingRuleIndex > index) {
+    // Adjust the index because one item is removed
+    setEditingRuleIndex((prev) => prev - 1);
   }
 };
 
@@ -170,13 +161,15 @@ const PayrollPage = () => {
   const handleSaveCommissionRules = async () => {
     try {
       setIsSavingCommission(true);
+      const payload = commissionRules.map(rule => ({
+        id: rule.id,
+        num_other_employees: rule.num_other_employees,
+        commission_percentage: parseFloat(rule.commission_percentage)
+      }));
       await axiosInstance.put(
         `/payroll/commission/${selectedUser.user_id}/`,
         {
-          commission_rules: commissionRules.map(rule => ({
-            num_other_employees: rule.num_other_employees,
-            commission_percentage: parseFloat(rule.commission_percentage)
-          }))
+          commission_rules: payload
         }
       );
       
@@ -559,7 +552,7 @@ const PayrollPage = () => {
   <div key={index} className="border border-gray-200 rounded-lg p-4">
     <div className="flex items-center justify-between">
       <div className="font-medium">
-        Person {rule.num_other_employees}:
+        Working with {rule.num_other_employees} other:
       </div>
       <div className="flex items-center gap-2">
         {editingRuleIndex === index ? (

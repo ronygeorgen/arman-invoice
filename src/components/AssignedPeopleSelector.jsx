@@ -11,6 +11,7 @@ import { searchAssignedPeople } from "../features/assignedPeople/assignedPeopleT
 import { useDebounce } from "../hooks/useDebounce";
 import { Check, User, X, Search, Loader2 } from "lucide-react";
 import { axiosInstance } from "../services/api";
+import { Link } from "react-router-dom";
 
 const AssignedPeopleSelector = () => {
   const dispatch = useDispatch();
@@ -152,6 +153,10 @@ const AssignedPeopleSelector = () => {
               {validationMessages.map((msg, index) => (
                 <p key={index}>{msg}</p>
               ))}
+              {!isValid&& 
+                <p className="pt-3 text-orange-600">
+                  please add an percentage from <span className="underline font-semibold"><Link to={'/payroll'}>payroll</Link></span> for working with {selectedPeople.length - 1} others
+                </p>}
             </div>
           )}
         </div>
