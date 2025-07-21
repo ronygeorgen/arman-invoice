@@ -29,6 +29,7 @@ const Home = () => {
   const { contacts = [], selectedContact, loading: contactsLoading } = useSelector((state) => state.contacts || {})
   const [isFirstTime, setIsFirstTime] = useState(false);
 
+
   const handleLogout = () => {
   dispatch(logoutUser());
 };
@@ -57,8 +58,11 @@ const Home = () => {
     }
   }, [debouncedServiceSearch, dispatch])
 
-  const {
-    selectedPeople = [], // Add this line
+
+  const { 
+    selectedPeople = [],
+    isValid: isAssignmentValid = false,
+    isValidating: isAssignmentValidating = false 
   } = useSelector((state) => state.assignedPeople || {});
 
   const handleCreateInvoice = async () => {
@@ -348,12 +352,18 @@ const resetForm = () => {
               <button
                 type="button"
                 onClick={handleCreateInvoice}
-                disabled={!invoiceTitle || !selectedContact || selectedServices.length === 0}
+                disabled={
+                  !invoiceTitle || 
+                  !selectedContact || 
+                  selectedServices.length === 0 || 
+                  (selectedPeople.length > 0 && !isAssignmentValid) ||
+                  isAssignmentValidating
+                }
                 className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 disabled:from-gray-300 disabled:to-gray-400 text-white font-semibold py-4 px-8 rounded-2xl transition-all duration-200 transform hover:scale-[1.02] disabled:scale-100 disabled:cursor-not-allowed shadow-lg hover:shadow-xl disabled:shadow-none"
               >
                 <div className="flex items-center justify-center gap-2">
                   <FileText className="w-5 h-5" />
-                  Create Work Order
+                  {isAssignmentValidating ? 'Validating...' : 'Create Work Order'}
                 </div>
               </button>
             </div>

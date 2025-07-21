@@ -1,3 +1,4 @@
+// AssignedPeopleSelector.js
 import { useState, useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { 
@@ -9,10 +10,14 @@ import {
 import { searchAssignedPeople } from "../features/assignedPeople/assignedPeopleThunks";
 import { useDebounce } from "../hooks/useDebounce";
 import { Check, User, X, Search, Loader2 } from "lucide-react";
+import { axiosInstance } from "../services/api";
 
 const AssignedPeopleSelector = () => {
   const dispatch = useDispatch();
   const [localSearch, setLocalSearch] = useState("");
+  const [validationMessages, setValidationMessages] = useState([]);
+  const [isValid, setIsValid] = useState(false);
+  const [isValidating, setIsValidating] = useState(false);
   const debouncedSearch = useDebounce(localSearch, 500);
 
   const { 
@@ -31,9 +36,37 @@ const AssignedPeopleSelector = () => {
     }
   }, [debouncedSearch, dispatch]);
 
+  useEffect(() => {
+    // Validate whenever selectedPeople changes
+    if (selectedPeople.length > 0) {
+      validateAssignedPeople();
+    } else {
+      setValidationMessages([]);
+      setIsValid(false);
+    }
+  }, [selectedPeople]);
+
+  const validateAssignedPeople = async () => {
+    try {
+      setIsValidating(true);
+      const response = await axiosInstance.post("/create/job/validations/", {
+        assigned_to: selectedPeople.map(person => person.user_id)
+      });
+      
+      setIsValid(response.data.success);
+      setValidationMessages(response.data.messages || []);
+    } catch (error) {
+      console.error("Validation failed:", error);
+      setIsValid(false);
+      setValidationMessages(["Validation failed. Please try again."]);
+    } finally {
+      setIsValidating(false);
+    }
+  };
+
   const handleTogglePerson = (person) => {
     dispatch(togglePersonSelection(person));
-    setLocalSearch(""); // Clear search input but don't reset people
+    setLocalSearch("");
   };
 
   const handleRemovePerson = (personId) => {
@@ -70,7 +103,7 @@ const AssignedPeopleSelector = () => {
       {localSearch && people.length > 0 && !loading && (
         <div className="space-y-2 max-h-64 overflow-y-auto bg-white rounded-2xl border border-gray-200 p-2">
           {people
-            .filter(person => !selectedPeople.some(selected => selected.id === person.id)) // Filter out already selected
+            .filter(person => !selectedPeople.some(selected => selected.id === person.id))
             .map((person) => (
               <div
                 key={person.id}
@@ -90,7 +123,7 @@ const AssignedPeopleSelector = () => {
         </div>
       )}
 
-      {/* Selected People Display - Always visible if there are selections */}
+      {/* Selected People Display */}
       {selectedPeople.length > 0 && (
         <div className="space-y-2">
           <p className="text-sm font-medium text-gray-700">Assigned to:</p>
@@ -107,6 +140,20 @@ const AssignedPeopleSelector = () => {
               </button>
             </div>
           ))}
+          
+          {/* Validation Messages */}
+          {isValidating ? (
+            <div className="flex items-center gap-2 text-sm text-gray-600">
+              <Loader2 className="w-4 h-4 animate-spin" />
+              Validating assignments...
+            </div>
+          ) : validationMessages.length > 0 && (
+            <div className={`p-3 rounded-xl text-sm ${isValid ? 'bg-green-50 text-green-700' : 'bg-yellow-50 text-yellow-700'}`}>
+              {validationMessages.map((msg, index) => (
+                <p key={index}>{msg}</p>
+              ))}
+            </div>
+          )}
         </div>
       )}
 

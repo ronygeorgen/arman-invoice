@@ -1,6 +1,12 @@
 import { useEffect, useState, useRef } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { fetchPayrollData, updateUserPercentage } from '../features/payroll/payrollSlice';
+import { 
+  fetchPayrollData, 
+  updateUserPercentage,
+  updatePercentageLocally,
+  startPercentageEdit,
+  cancelPercentageEdit
+} from '../features/payroll/payrollSlice';
 import { FileText, DollarSign, User, Filter, Loader2, ChevronDown, X as CloseIcon, X, Plus, Check } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { logoutUser } from '../features/auth/authThunks';
@@ -10,7 +16,13 @@ import 'react-datepicker/dist/react-datepicker.css';
 
 const PayrollPage = () => {
   const dispatch = useDispatch();
-  const { data, loading, error } = useSelector((state) => state.payroll);
+  const { 
+      data, 
+      loading, 
+      error, 
+      percentageUpdates 
+    } = useSelector((state) => state.payroll);
+
   const [selectedUser, setSelectedUser] = useState(null);
   const [showModal, setShowModal] = useState(false);
   const [dateRange, setDateRange] = useState([null, null]);
@@ -267,7 +279,8 @@ const PayrollPage = () => {
                     <tr>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Employee</th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Total Payout</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Percentage Management</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">User's Percentage </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Commission Rules</th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
                     </tr>
                   </thead>
@@ -290,6 +303,68 @@ const PayrollPage = () => {
                             ${employee.total_payout.toFixed(2)}
                           </div>
                         </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+  {employee.editingPercentage ? (
+    <div className="flex items-center gap-2">
+      <input
+        type="number"
+        value={employee.newPercentage ?? ''}
+        onChange={(e) => dispatch(updatePercentageLocally({
+          userId: employee.user_id,
+          percentage: e.target.value === '' ? '' : parseFloat(e.target.value)
+        }))}
+        className="w-20 px-2 py-1 border rounded text-sm"
+        min="0"
+        max="100"
+        step="0.01"
+        placeholder="Enter percentage"
+      />
+      
+      {percentageUpdates[employee.user_id]?.loading ? (
+        <Loader2 className="animate-spin h-4 w-4" />
+      ) : (
+        <>
+          <button
+            onClick={() => {
+              if (employee.newPercentage !== undefined && employee.newPercentage !== '') {
+                dispatch(updateUserPercentage({
+                  userId: employee.user_id,
+                  percentage: employee.newPercentage
+                }));
+              }
+            }}
+            disabled={employee.newPercentage === undefined || employee.newPercentage === ''}
+            className={`${(employee.newPercentage === undefined || employee.newPercentage === '') ? 'text-gray-400' : 'text-green-600 hover:text-green-800'}`}
+          >
+            <Check size={16} />
+          </button>
+          <button
+            onClick={() => dispatch(cancelPercentageEdit(employee.user_id))}
+            className="text-red-600 hover:text-red-800"
+          >
+            <X size={16} />
+          </button>
+        </>
+      )}
+      
+      {percentageUpdates[employee.user_id]?.error && (
+        <span className="text-xs text-red-500">
+          {percentageUpdates[employee.user_id].error}
+        </span>
+      )}
+    </div>
+  ) : (
+    <div className="flex items-center gap-2">
+      <span className="text-sm">{employee.percentage}%</span>
+      <button
+        onClick={() => dispatch(startPercentageEdit(employee.user_id))}
+        className="text-indigo-600 hover:text-indigo-800"
+      >
+        <FileText size={16} />
+      </button>
+    </div>
+  )}
+</td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <button
                             onClick={() => handleManageCommission(employee)}
