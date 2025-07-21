@@ -37,6 +37,8 @@ const PayrollPage = () => {
   const [editingRuleIndex, setEditingRuleIndex] = useState(null);
   const modalContentRef = useRef(null);
 
+  const [filteredTotalPayout, setFilteredTotalPayout] = useState();
+
   const [originalCommissionRules, setOriginalCommissionRules] = useState([]);
 
 
@@ -91,7 +93,7 @@ const PayrollPage = () => {
           end_date: formatDate(endDate)
         }
       });
-      
+      setFilteredTotalPayout(response.data?.total_payout)      
       setFilteredPayouts(response.data.payouts || []);
     } catch (error) {
       console.error('Error filtering payouts:', error);
@@ -401,6 +403,12 @@ const PayrollPage = () => {
                   <X className="h-6 w-6" />
                 </button>
               </div>
+              <p className="text-sm text-gray-500 mt-1">
+                Total Payout: $
+                {isFiltering
+                  ? filteredTotalPayout
+                  : selectedUser.total_payout}
+              </p>
             </div>
             
             {/* Filter Section */}
@@ -497,7 +505,7 @@ const PayrollPage = () => {
                         <div>
                           <p className="text-sm font-medium text-gray-500">Amount</p>
                           <p className="mt-1 text-sm text-gray-900">
-                            ${payout.amount.toFixed(2)}
+                            ${payout.amount}
                           </p>
                         </div>
                         <div className="col-span-2">
