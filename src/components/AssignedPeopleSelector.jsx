@@ -19,7 +19,6 @@ const AssignedPeopleSelector = () => {
   const dispatch = useDispatch();
   const [localSearch, setLocalSearch] = useState("");
   const [validationMessages, setValidationMessages] = useState([]);
-  const [isValid, setIsValid] = useState(false);
   const [isValidating, setIsValidating] = useState(false);
   const debouncedSearch = useDebounce(localSearch, 500);
 
@@ -27,7 +26,8 @@ const AssignedPeopleSelector = () => {
     people = [], 
     selectedPeople = [], 
     loading, 
-    error
+    error,
+    isValid
   } = useSelector((state) => state.assignedPeople || {});
 
   useEffect(() => {
@@ -45,7 +45,7 @@ const AssignedPeopleSelector = () => {
       validateAssignedPeople();
     } else {
       setValidationMessages([]);
-      setIsValid(false);
+      dispatch(setValidationStatus(false));
     }
   }, [selectedPeople]);
 
