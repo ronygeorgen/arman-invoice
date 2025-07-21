@@ -34,8 +34,18 @@ const payrollSlice = createSlice({
     data: [],
     loading: false,
     error: null,
+    updatingPercentage: false, // Track if a percentage update is in progress
   },
-  reducers: {},
+  reducers: {
+    // Add a reducer to update percentage locally before saving
+    updatePercentageLocally: (state, action) => {
+      const { userId, percentage } = action.payload;
+      const userIndex = state.data.findIndex(user => user.user_id === userId);
+      if (userIndex !== -1) {
+        state.data[userIndex].percentage = parseFloat(percentage);
+      }
+    },
+  },
   extraReducers: (builder) => {
     builder
       .addCase(fetchPayrollData.pending, (state) => {
@@ -51,11 +61,11 @@ const payrollSlice = createSlice({
         state.error = action.payload;
       })
       .addCase(updateUserPercentage.pending, (state) => {
-        state.loading = true;
+        state.updatingPercentage = true;
         state.error = null;
       })
       .addCase(updateUserPercentage.fulfilled, (state, action) => {
-        state.loading = false;
+        state.updatingPercentage = false;
         // Update the specific user's percentage in the state
         const updatedUser = action.payload;
         state.data = state.data.map(user => 
@@ -63,10 +73,11 @@ const payrollSlice = createSlice({
         );
       })
       .addCase(updateUserPercentage.rejected, (state, action) => {
-        state.loading = false;
+        state.updatingPercentage = false;
         state.error = action.payload;
       });
   },
 });
 
+export const { updatePercentageLocally } = payrollSlice.actions;
 export default payrollSlice.reducer;

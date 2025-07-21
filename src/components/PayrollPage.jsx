@@ -1,10 +1,9 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { fetchPayrollData } from '../features/payroll/payrollSlice';
-import { FileText, DollarSign, User, Filter, Loader2, ChevronDown, Edit, Check, X as CloseIcon, X } from 'lucide-react';
+import { fetchPayrollData, updateUserPercentage } from '../features/payroll/payrollSlice';
+import { FileText, DollarSign, User, Filter, Loader2, ChevronDown, X as CloseIcon, X, Plus, Check } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { logoutUser } from '../features/auth/authThunks';
-import { updateUserPercentage } from '../features/payroll/payrollSlice';
 import { axiosInstance } from '../services/api';
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
@@ -14,18 +13,28 @@ const PayrollPage = () => {
   const { data, loading, error } = useSelector((state) => state.payroll);
   const [selectedUser, setSelectedUser] = useState(null);
   const [showModal, setShowModal] = useState(false);
-  const [editingUserId, setEditingUserId] = useState(null);
-  const [percentageValue, setPercentageValue] = useState('');
   const [dateRange, setDateRange] = useState([null, null]);
   const [startDate, endDate] = dateRange;
   const [filteredPayouts, setFilteredPayouts] = useState([]);
   const [isFiltering, setIsFiltering] = useState(false);
   const [isFilterLoading, setIsFilterLoading] = useState(false);
   const [showDatePicker, setShowDatePicker] = useState(false);
+  const [showCommissionModal, setShowCommissionModal] = useState(false);
+  const [commissionRules, setCommissionRules] = useState([]);
+  const [isSavingCommission, setIsSavingCommission] = useState(false);
+  const [editingRuleIndex, setEditingRuleIndex] = useState(null);
+  const modalContentRef = useRef(null);
 
   useEffect(() => {
     dispatch(fetchPayrollData());
   }, [dispatch]);
+
+  useEffect(() => {
+    // Scroll to bottom when new rule is added
+    if (modalContentRef.current && commissionRules.length > 0) {
+      modalContentRef.current.scrollTop = modalContentRef.current.scrollHeight;
+    }
+  }, [commissionRules.length]);
 
   const handleViewPayouts = (user) => {
     setSelectedUser(user);
@@ -33,30 +42,6 @@ const PayrollPage = () => {
     setShowModal(true);
     setDateRange([null, null]);
     setIsFiltering(false);
-  };
-
-  const handleEditClick = (user) => {
-    setEditingUserId(user.user_id);
-    setPercentageValue(user.percentage.toString());
-  };
-
-  const handleCancelEdit = () => {
-    setEditingUserId(null);
-    setPercentageValue('');
-  };
-
-  const handleSavePercentage = async (userId) => {
-    console.log(`Saving percentage for user ${userId}: ${percentageValue}`);
-    try {
-      await dispatch(updateUserPercentage({
-        userId,
-        percentage: percentageValue
-      })).unwrap();
-      setEditingUserId(null);
-      dispatch(fetchPayrollData());
-    } catch (error) {
-      console.error('Failed to update percentage:', error);
-    }
   };
 
   const closeModal = () => {
@@ -67,45 +52,129 @@ const PayrollPage = () => {
   };
 
   const applyFilter = async () => {
-  if (!startDate || !endDate) {
-    alert('Please select both start and end dates');
-    return;
-  }
+    if (!startDate || !endDate) {
+      alert('Please select both start and end dates');
+      return;
+    }
 
-  try {
-    setIsFilterLoading(true);
-    setIsFiltering(true);
-    setShowDatePicker(false);
-    
-    // Format dates as YYYY-MM-DD without timezone conversion
-    const formatDate = (date) => {
-      const year = date.getFullYear();
-      const month = String(date.getMonth() + 1).padStart(2, '0');
-      const day = String(date.getDate()).padStart(2, '0');
-      return `${year}-${month}-${day}`;
-    };
+    try {
+      setIsFilterLoading(true);
+      setIsFiltering(true);
+      setShowDatePicker(false);
+      
+      const formatDate = (date) => {
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+      };
 
-    const response = await axiosInstance.get('/payroll/', {
-      params: {
-        user_id: selectedUser.user_id,
-        start_date: formatDate(startDate),
-        end_date: formatDate(endDate)
-      }
-    });
-    
-    setFilteredPayouts(response.data.payouts || []);
-  } catch (error) {
-    console.error('Error filtering payouts:', error);
-    setIsFiltering(false);
-  } finally {
-    setIsFilterLoading(false);
-  }
-};
+      const response = await axiosInstance.get('/payroll/', {
+        params: {
+          user_id: selectedUser.user_id,
+          start_date: formatDate(startDate),
+          end_date: formatDate(endDate)
+        }
+      });
+      
+      setFilteredPayouts(response.data.payouts || []);
+    } catch (error) {
+      console.error('Error filtering payouts:', error);
+      setIsFiltering(false);
+    } finally {
+      setIsFilterLoading(false);
+    }
+  };
 
   const resetFilter = () => {
     setFilteredPayouts(selectedUser.payouts);
     setDateRange([null, null]);
     setIsFiltering(false);
+  };
+
+  const handleManageCommission = (user) => {
+    setSelectedUser(user);
+    setCommissionRules(user.commission_rules ? JSON.parse(JSON.stringify(user.commission_rules)) : []);
+    setShowCommissionModal(true);
+    setEditingRuleIndex(null);
+  };
+
+  const handleAddCommissionRule = () => {
+    const newNumEmployees = commissionRules.length > 0 
+      ? Math.max(...commissionRules.map(rule => rule.num_other_employees)) + 1
+      : 1;
+    
+    const newRule = {
+      num_other_employees: newNumEmployees,
+      commission_percentage: "0.00"
+    };
+    
+    setCommissionRules([...commissionRules, newRule]);
+    setEditingRuleIndex(commissionRules.length);
+  };
+
+  const handleCommissionPercentageChange = (index, value) => {
+    const newRules = [...commissionRules];
+    newRules[index] = {
+      ...newRules[index],
+      commission_percentage: value
+    };
+    setCommissionRules(newRules);
+  };
+
+ const handleRemoveCommissionRule = async (index) => {
+  try {
+    const newRules = [...commissionRules];
+    newRules.splice(index, 1);
+    
+    // Immediately call the API to delete
+    await axiosInstance.put(
+      `/payroll/commission/${selectedUser.user_id}/`,
+      {
+        commission_rules: newRules.map(rule => ({
+          num_other_employees: rule.num_other_employees,
+          commission_percentage: parseFloat(rule.commission_percentage)
+        }))
+      }
+    );
+    
+    // Update local state only after successful API call
+    setCommissionRules(newRules);
+    if (editingRuleIndex === index) {
+      setEditingRuleIndex(null);
+    }
+    
+    // Refresh the data
+    dispatch(fetchPayrollData());
+  } catch (error) {
+    console.error('Error removing commission rule:', error);
+  }
+};
+
+  const handleEditRule = (index) => {
+    setEditingRuleIndex(index === editingRuleIndex ? null : index);
+  };
+
+  const handleSaveCommissionRules = async () => {
+    try {
+      setIsSavingCommission(true);
+      await axiosInstance.put(
+        `/payroll/commission/${selectedUser.user_id}/`,
+        {
+          commission_rules: commissionRules.map(rule => ({
+            num_other_employees: rule.num_other_employees,
+            commission_percentage: parseFloat(rule.commission_percentage)
+          }))
+        }
+      );
+      
+      setShowCommissionModal(false);
+      dispatch(fetchPayrollData());
+    } catch (error) {
+      console.error('Error saving commission rules:', error);
+    } finally {
+      setIsSavingCommission(false);
+    }
   };
 
   const displayPayouts = isFiltering ? filteredPayouts : (selectedUser?.payouts || []);
@@ -198,7 +267,7 @@ const PayrollPage = () => {
                     <tr>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Employee</th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Total Payout</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Percentage</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Percentage Management</th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
                     </tr>
                   </thead>
@@ -222,42 +291,12 @@ const PayrollPage = () => {
                           </div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
-                          {editingUserId === employee.user_id ? (
-                            <div className="flex items-center gap-2">
-                              <input
-                                type="number"
-                                value={percentageValue}
-                                onChange={(e) => setPercentageValue(e.target.value)}
-                                className="w-20 px-2 py-1 border rounded"
-                                min="0"
-                                max="100"
-                                step="0.1"
-                              />
-                              <span>%</span>
-                              <button 
-                                onClick={() => handleSavePercentage(employee.user_id)}
-                                className="text-green-600 hover:text-green-800"
-                              >
-                                <Check size={16} />
-                              </button>
-                              <button 
-                                onClick={handleCancelEdit}
-                                className="text-red-600 hover:text-red-800"
-                              >
-                                <CloseIcon size={16} />
-                              </button>
-                            </div>
-                          ) : (
-                            <div className="flex items-center gap-2">
-                              <span>{employee?.percentage || '0'}%</span>
-                              <button 
-                                onClick={() => handleEditClick(employee)}
-                                className="text-blue-600 hover:text-blue-800"
-                              >
-                                <Edit size={16} />
-                              </button>
-                            </div>
-                          )}
+                          <button
+                            onClick={() => handleManageCommission(employee)}
+                            className="px-3 py-1 bg-indigo-100 text-indigo-700 rounded text-sm hover:bg-indigo-200"
+                          >
+                            Manage
+                          </button>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <button
@@ -294,79 +333,76 @@ const PayrollPage = () => {
                   <X className="h-6 w-6" />
                 </button>
               </div>
-              <p className="text-sm text-gray-500 mt-1">
-                Total Payout: ${selectedUser.total_payout.toFixed(2)}
-              </p>
             </div>
             
             {/* Filter Section */}
             <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
-            <div className="relative">
-              <button
-                onClick={() => setShowDatePicker(!showDatePicker)}
-                className="flex items-center gap-2 px-3 py-2 bg-gray-100 hover:bg-gray-200 rounded-md"
-              >
-                <Filter className="w-4 h-4" />
-                <span>Filter by date</span>
-                {isFiltering && (
-                  <span className="ml-1 text-xs text-gray-500">
-                    {startDate && endDate ? 
-                      `${startDate.toLocaleDateString()} - ${endDate.toLocaleDateString()}` : 
-                      'No date range selected'}
-                  </span>
-                )}
-              </button>
-              
-              {showDatePicker && (
-                <div className="absolute z-10 mt-2 bg-white p-4 rounded-lg shadow-lg border border-gray-200">
-                  <DatePicker
-                    selectsRange
-                    startDate={startDate}
-                    endDate={endDate}
-                    onChange={(update) => {
-                      setDateRange(update);
-                    }}
-                    isClearable={true}
-                    inline
-                  />
-                  <div className="flex justify-end gap-2 mt-2">
-                    <button
-                      onClick={() => {
-                        setDateRange([null, null]);
-                        setShowDatePicker(false);
+              <div className="relative">
+                <button
+                  onClick={() => setShowDatePicker(!showDatePicker)}
+                  className="flex items-center gap-2 px-3 py-2 bg-gray-100 hover:bg-gray-200 rounded-md"
+                >
+                  <Filter className="w-4 h-4" />
+                  <span>Filter by date</span>
+                  {isFiltering && (
+                    <span className="ml-1 text-xs text-gray-500">
+                      {startDate && endDate ? 
+                        `${startDate.toLocaleDateString()} - ${endDate.toLocaleDateString()}` : 
+                        'No date range selected'}
+                    </span>
+                  )}
+                </button>
+                
+                {showDatePicker && (
+                  <div className="absolute z-10 mt-2 bg-white p-4 rounded-lg shadow-lg border border-gray-200">
+                    <DatePicker
+                      selectsRange
+                      startDate={startDate}
+                      endDate={endDate}
+                      onChange={(update) => {
+                        setDateRange(update);
                       }}
-                      className="px-3 py-1 text-sm text-gray-700 hover:bg-gray-100 rounded"
-                    >
-                      Cancel
-                    </button>
-                    <button
-                      onClick={() => {
-                        applyFilter(); // This will now handle hiding the calendar
-                      }}
-                      disabled={!startDate || !endDate}
-                      className={`px-3 py-1 text-sm text-white rounded ${
-                        !startDate || !endDate 
-                          ? 'bg-gray-400' 
-                          : 'bg-blue-600 hover:bg-blue-700'
-                      }`}
-                    >
-                      Apply
-                    </button>
+                      isClearable={true}
+                      inline
+                    />
+                    <div className="flex justify-end gap-2 mt-2">
+                      <button
+                        onClick={() => {
+                          setDateRange([null, null]);
+                          setShowDatePicker(false);
+                        }}
+                        className="px-3 py-1 text-sm text-gray-700 hover:bg-gray-100 rounded"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        onClick={() => {
+                          applyFilter();
+                        }}
+                        disabled={!startDate || !endDate}
+                        className={`px-3 py-1 text-sm text-white rounded ${
+                          !startDate || !endDate 
+                            ? 'bg-gray-400' 
+                            : 'bg-blue-600 hover:bg-blue-700'
+                        }`}
+                      >
+                        Apply
+                      </button>
+                    </div>
                   </div>
-                </div>
+                )}
+              </div>
+              
+              {isFiltering && (
+                <button
+                  onClick={resetFilter}
+                  className="flex items-center gap-1 px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-md"
+                >
+                  <X className="w-4 h-4" />
+                  Clear filter
+                </button>
               )}
             </div>
-            
-            {isFiltering && (
-              <button
-                onClick={resetFilter}
-                className="flex items-center gap-1 px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-md"
-              >
-                <X className="w-4 h-4" />
-                Clear filter
-              </button>
-            )}
-          </div>
             
             {/* Scrollable content area */}
             <div className="px-6 py-4 overflow-y-auto flex-grow">
@@ -404,7 +440,6 @@ const PayrollPage = () => {
                         </div>
                       </div>
                     </div>
-
                   ))}
                 </div>
               )}
@@ -413,10 +448,119 @@ const PayrollPage = () => {
             <div className="px-6 py-4 border-t border-gray-200 flex justify-end">
               <button
                 onClick={closeModal}
-                className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
               >
                 Close
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Commission Management Modal */}
+      {showCommissionModal && selectedUser && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-md max-h-[90vh] flex flex-col">
+            <div className="px-6 py-4 border-b border-gray-200">
+              <div className="flex items-center justify-between">
+                <h3 className="text-lg font-medium text-gray-900">
+                  Commission Rules for {selectedUser.name}
+                </h3>
+                <button 
+                  onClick={() => setShowCommissionModal(false)} 
+                  className="text-gray-400 hover:text-gray-500 focus:outline-none"
+                >
+                  <X className="h-6 w-6" />
+                </button>
+              </div>
+            </div>
+            
+            <div 
+              className="px-6 py-4 overflow-y-auto flex-grow"
+              ref={modalContentRef}
+            >
+              <div className="space-y-4">
+                {commissionRules.map((rule, index) => (
+  <div key={index} className="border border-gray-200 rounded-lg p-4">
+    <div className="flex items-center justify-between">
+      <div className="font-medium">
+        Person {rule.num_other_employees}:
+      </div>
+      <div className="flex items-center gap-2">
+        {editingRuleIndex === index ? (
+          <>
+            <input
+              type="number"
+              value={rule.commission_percentage}
+              onChange={(e) => handleCommissionPercentageChange(index, e.target.value)}
+              className="w-20 px-2 py-1 border rounded"
+              min="0"
+              max="100"
+              step="0.1"
+            />
+            <span>%</span>
+            <button
+              onClick={() => setEditingRuleIndex(null)}
+              className="text-green-600 hover:text-green-800"
+            >
+              <Check size={16} />
+            </button>
+          </>
+        ) : (
+          <>
+            <span>{rule.commission_percentage}%</span>
+            <button
+              onClick={() => handleEditRule(index)}
+              className="text-indigo-600 hover:text-indigo-800"
+            >
+              <FileText size={16} />
+            </button>
+            <button
+              onClick={() => handleRemoveCommissionRule(index)}
+              className="text-red-600 hover:text-red-800"
+            >
+              <X size={16} />
+            </button>
+          </>
+        )}
+      </div>
+    </div>
+  </div>
+))}
+              </div>
+            </div>
+            
+            <div className="px-6 py-4 border-t border-gray-200 flex justify-between">
+              <button
+                onClick={handleAddCommissionRule}
+                className="flex items-center gap-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200"
+              >
+                <Plus size={16} />
+                Add Person
+              </button>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setShowCommissionModal(false)}
+                  className="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300"
+                  disabled={isSavingCommission}
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleSaveCommissionRules}
+                  className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 flex items-center justify-center min-w-24"
+                  disabled={isSavingCommission}
+                >
+                  {isSavingCommission ? (
+                    <>
+                      <Loader2 className="animate-spin h-4 w-4 mr-2" />
+                      Saving...
+                    </>
+                  ) : (
+                    'Save Changes'
+                  )}
+                </button>
+              </div>
             </div>
           </div>
         </div>
