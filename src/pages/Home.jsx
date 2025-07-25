@@ -14,7 +14,7 @@ import SelectedServicesList from "../components/SelectedServicesList"
 import AssignedPeopleSelector from '../components/AssignedPeopleSelector';
 import { resetSelectedServices } from '../features/fservices/servicesSlice';
 import { resetSelectedPeople } from '../features/assignedPeople/assignedPeopleSlice';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams  } from 'react-router-dom';
 import { logoutUser } from '../features/auth/authThunks';
 const Home = () => {
   const dispatch = useDispatch()
@@ -28,7 +28,9 @@ const Home = () => {
   // Safely access Redux state with defaults
   const { contacts = [], selectedContact, loading: contactsLoading } = useSelector((state) => state.contacts || {})
   const [isFirstTime, setIsFirstTime] = useState(false);
-
+  const [searchParams] = useSearchParams();
+  const contactid = searchParams.get('contactid');
+  console.log("Contact ID from URL:", contactid);
 
   const handleLogout = () => {
   dispatch(logoutUser());
@@ -66,29 +68,28 @@ const Home = () => {
   } = useSelector((state) => state.assignedPeople || {});
 
   const handleCreateInvoice = async () => {
-  if (!selectedContact || selectedServices.length === 0 ) {
-    alert("Please select a contact and at least one service");
+  const contactIdToUse = contactid || selectedContact?.contact_id;
+  
+  if (!contactIdToUse || selectedServices.length === 0) {
+    alert(contactid ? "Please select at least one service" : "Please select a contact and at least one service");
     return;
   }
 
   // Prepare line items with prices
   const service = selectedServices.map(service => ({
-    // service_id: service.id,
     name: service.name,
     description: service.description,
     price: parseFloat(service.price) || 0,
-    quantity: 1 // You can add quantity field if needed
+    quantity: 1
   }));
 
-  console.log("Selected Services:", service);
-  
   const assigned_people_ids = selectedPeople.map(person => person.user_id);
 
   const invoiceData = {
     title: invoiceTitle,
-    contact_id: selectedContact.contact_id,
+    contact_id: contactIdToUse,
     assigned_to: assigned_people_ids,
-    service, // Send the array of services with prices
+    service,
     is_first_time: isFirstTime,
   };
 
@@ -101,7 +102,7 @@ const Home = () => {
     console.error("Error creating invoice:", error);
     alert("Failed to create invoice");
   }
-}; 
+};
 
 const resetForm = () => {
   
@@ -192,60 +193,64 @@ const resetForm = () => {
             </div>
 
             {/* Contact Search */}
-            <div className="space-y-3">
-              <label className="flex items-center gap-2 text-sm font-semibold text-gray-700">
-                <User className="w-4 h-4" />
-                Select Contact
-              </label>
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                  <Search className="h-5 w-5 text-gray-400" />
-                </div>
-                <input
-                  type="text"
-                  className="w-full pl-12 pr-4 py-4 bg-gray-50/50 border border-gray-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 text-gray-900 placeholder-gray-500"
-                  value={contactSearch}
-                  onChange={(e) => setContactSearch(e.target.value)}
-                  placeholder="Search by name, phone, or email"
-                />
-                {contactsLoading && (
-                  <div className="absolute inset-y-0 right-0 pr-4 flex items-center">
-                    <Loader2 className="h-5 w-5 text-blue-500 animate-spin" />
-                  </div>
-                )}
-              </div>
+{!contactid && (
+  <div className="space-y-3">
+    <label className="flex items-center gap-2 text-sm font-semibold text-gray-700">
+      <User className="w-4 h-4" />
+      Select Contact
+    </label>
+    <div className="relative">
+      <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+        <Search className="h-5 w-5 text-gray-400" />
+      </div>
+      <input
+        type="text"
+        className="w-full pl-12 pr-4 py-4 bg-gray-50/50 border border-gray-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 text-gray-900 placeholder-gray-500"
+        value={contactSearch}
+        onChange={(e) => setContactSearch(e.target.value)}
+        placeholder="Search by name, phone, or email"
+      />
+      {contactsLoading && (
+        <div className="absolute inset-y-0 right-0 pr-4 flex items-center">
+          <Loader2 className="h-5 w-5 text-blue-500 animate-spin" />
+        </div>
+      )}
+    </div>
 
-              {/* Contact Results */}
-              {debouncedContactSearch && contacts.length > 0 && !contactsLoading && (
-                <div className="space-y-2 max-h-64 overflow-y-auto bg-white rounded-2xl border border-gray-200 p-2">
-                  {contacts.map((contact) => (
-                    <div
-                      key={contact.id}
-                      className={`p-4 rounded-xl cursor-pointer transition-all duration-200 ${
-                        selectedContact?.id === contact.id
-                          ? "bg-gradient-to-r from-blue-50 to-purple-50 border-2 border-blue-200"
-                          : "hover:bg-gray-50 border border-transparent"
-                      }`}
-                      onClick={() => handleSelectContact(contact)}
-                    >
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <p className="font-semibold text-gray-900">
-                            {contact.first_name} {contact.last_name}
-                          </p>
-                          <p className="text-sm text-gray-600">{contact.phone}</p>
-                          {contact.email && <p className="text-sm text-gray-600">{contact.email}</p>}
-                        </div>
-                        {selectedContact?.id === contact.id && (
-                          <div className="p-1 bg-blue-500 rounded-full">
-                            <Check className="w-4 h-4 text-white" />
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  ))}
+    {/* Contact Results */}
+    {debouncedContactSearch && contacts.length > 0 && !contactsLoading && (
+      <div className="space-y-2 max-h-64 overflow-y-auto bg-white rounded-2xl border border-gray-200 p-2">
+        {contacts.map((contact) => (
+          <div
+            key={contact.id}
+            className={`p-4 rounded-xl cursor-pointer transition-all duration-200 ${
+              selectedContact?.id === contact.id
+                ? "bg-gradient-to-r from-blue-50 to-purple-50 border-2 border-blue-200"
+                : "hover:bg-gray-50 border border-transparent"
+            }`}
+            onClick={() => handleSelectContact(contact)}
+          >
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="font-semibold text-gray-900">
+                  {contact.first_name} {contact.last_name}
+                </p>
+                <p className="text-sm text-gray-600">{contact.phone}</p>
+                {contact.email && <p className="text-sm text-gray-600">{contact.email}</p>}
+              </div>
+              {selectedContact?.id === contact.id && (
+                <div className="p-1 bg-blue-500 rounded-full">
+                  <Check className="w-4 h-4 text-white" />
                 </div>
               )}
+            </div>
+          </div>
+        ))}
+      </div>
+    )}
+  </div>
+)}
+            <div className="space-y-3">
 
               {/* Selected Contact Display */}
               {selectedContact && (
