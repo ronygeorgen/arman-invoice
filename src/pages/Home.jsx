@@ -1,4 +1,5 @@
 "use client"
+import clsx from 'clsx';
 
 import { useEffect, useState } from "react"
 import { useDispatch, useSelector } from "react-redux"
@@ -361,13 +362,10 @@ const resetForm = () => {
     !invoiceTitle || 
     !selectedContact || 
     selectedServices.length === 0 || 
-    (selectedPeople.length > 0 && isAssignmentValid === false)
+    selectedPeople.length === 0 ||
+    isAssignmentValid === false
   }
-  className={`w-full ${
-    selectedPeople.length > 0 && isAssignmentValid === false
-      ? 'bg-red-500 hover:bg-red-600'
-      : 'bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700'
-  } text-white font-semibold py-4 px-8 rounded-2xl transition-all duration-200 disabled:bg-gray-400 disabled:cursor-not-allowed`}
+  className={`w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700  text-white font-semibold py-4 px-8 rounded-2xl transition-all duration-200 disabled:bg-gray-400 disabled:cursor-not-allowed`}
 >
   {selectedPeople.length > 0 && isAssignmentValid === false 
     ? 'Fix Assignment Issues' 
