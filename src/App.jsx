@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import Login from './pages/Login';
 import Home from './pages/Home';
 import PayrollPage from './components/PayrollPage';
+import InvoiceView from './pages/InvoiceView';
 
 const App = () => {
   const { isAuthenticated } = useSelector((state) => state.auth);
@@ -21,6 +22,10 @@ const App = () => {
         <Route
           path="/payroll"
           element={isAuthenticated ? <PayrollPage /> : <Navigate to="/login" replace />}
+        />
+        <Route
+          path="/invoice/:token"
+          element={<InvoiceView />}
         />
       </Routes>
     </Router>
