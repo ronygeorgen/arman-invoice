@@ -327,6 +327,26 @@ const InvoiceView = () => {
                 </h2>
                 <div className="space-y-2 text-gray-700">
                   <p className="font-semibold text-gray-900">{invoice.business?.name}</p>
+                  
+                  {/* Business details for TruShine Window Cleaning (location_id: b8qvo7VooP3JD3dIZU42) */}
+                  {invoice.location_id === 'b8qvo7VooP3JD3dIZU42' && (
+                    <>
+                      <p className="text-sm text-gray-600">TRUSHINE WINDOW CLEANING LLC</p>
+                      <p className="text-sm flex items-center gap-1">
+                        <Mail className="w-4 h-4" />
+                        trushinehouston@gmail.com
+                      </p>
+                      <p className="text-sm flex items-center gap-1">
+                        <Phone className="w-4 h-4" />
+                        +1 832-713-3545
+                      </p>
+                      <p className="text-sm flex items-start gap-1">
+                        <MapPin className="w-4 h-4 mt-0.5 flex-shrink-0" />
+                        3525 Murdock St, Houston, TX, 77047, United States
+                      </p>
+                    </>
+                  )}
+                  
                   {invoice.business?.logo_url && (
                     <div className="mt-2">
                       <img 
