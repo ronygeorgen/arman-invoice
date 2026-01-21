@@ -347,7 +347,7 @@ const InvoiceView = () => {
                     </>
                   )}
                   
-                  {invoice.business?.logo_url && (
+                  {/* {invoice.business?.logo_url && (
                     <div className="mt-2">
                       <img 
                         src={invoice.business.logo_url} 
@@ -355,7 +355,7 @@ const InvoiceView = () => {
                         className="h-12 object-contain"
                       />
                     </div>
-                  )}
+                  )} */}
                 </div>
               </div>
 
