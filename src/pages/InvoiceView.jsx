@@ -484,6 +484,18 @@ const InvoiceView = () => {
                 <span>Subtotal:</span>
                 <span className="font-medium">{formatCurrency(subtotal)}</span>
               </div>
+              {invoice.discount_value != null && parseFloat(invoice.discount_value) > 0 && (
+                <div className="flex justify-between text-gray-700">
+                  <span>Discount{invoice.discount_type === 'percentage' ? ` (${invoice.discount_value}%)` : ''}:</span>
+                  <span className="font-medium text-green-700">
+                    -{formatCurrency(
+                      invoice.discount_type === 'percentage'
+                        ? (subtotal * parseFloat(invoice.discount_value)) / 100
+                        : parseFloat(invoice.discount_value)
+                    )}
+                  </span>
+                </div>
+              )}
               {totalTax > 0 && (
                 <div className="flex justify-between text-gray-700">
                   <span>Tax:</span>
