@@ -31,6 +31,9 @@ const InvoiceView = () => {
   const [paymentMessage, setPaymentMessage] = useState(null);
   const [savingSignature, setSavingSignature] = useState(false);
   const [signatureMessage, setSignatureMessage] = useState(null);
+  const [tipAmount, setTipAmount] = useState(0);
+  const [customTipValue, setCustomTipValue] = useState('');
+  const [tipNotes, setTipNotes] = useState('');
 
   useEffect(() => {
     const loadInvoice = async () => {
@@ -166,8 +169,13 @@ const InvoiceView = () => {
       setProcessingPayment(true);
       setPaymentMessage(null);
 
-      const response = await axiosInstance.post(`/api/invoice/${token}/create-checkout-session/`);
-      
+      const payload = {};
+      if (tipAmount > 0) {
+        payload.tip_amount = tipAmount;
+        if (tipNotes.trim()) payload.tip_notes = tipNotes.trim();
+      }
+      const response = await axiosInstance.post(`/api/invoice/${token}/create-checkout-session/`, payload);
+
       if (response.data && response.data.checkout_url) {
         // Redirect to Stripe Checkout
         window.location.href = response.data.checkout_url;
@@ -288,6 +296,8 @@ const InvoiceView = () => {
   const subtotal = calculateSubtotal();
   const totalTax = calculateTotalTax();
   const total = parseFloat(invoice.total) || (subtotal + totalTax);
+  const amountDue = parseFloat(invoice.amount_due) || total;
+  const totalWithTip = amountDue + (tipAmount || 0);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50 to-indigo-50 py-8 px-4 print:bg-white print:py-0">
@@ -477,16 +487,17 @@ const InvoiceView = () => {
             </div>
           </div>
 
-          {/* Totals Section */}
+          {/* Totals Section - Pricing breakdown */}
           <div className="px-8 py-6 bg-gray-50 border-t border-gray-200">
-            <div className="max-w-md ml-auto space-y-3">
+            <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-4">Pricing Breakdown</h3>
+            <div className="max-w-md ml-auto space-y-2">
               <div className="flex justify-between text-gray-700">
-                <span>Subtotal:</span>
+                <span>Subtotal</span>
                 <span className="font-medium">{formatCurrency(subtotal)}</span>
               </div>
               {invoice.discount_value != null && parseFloat(invoice.discount_value) > 0 && (
                 <div className="flex justify-between text-gray-700">
-                  <span>Discount{invoice.discount_type === 'percentage' ? ` (${invoice.discount_value}%)` : ''}:</span>
+                  <span>Discount{invoice.discount_type === 'percentage' ? ` (${invoice.discount_value}%)` : ''}</span>
                   <span className="font-medium text-green-700">
                     -{formatCurrency(
                       invoice.discount_type === 'percentage'
@@ -498,28 +509,94 @@ const InvoiceView = () => {
               )}
               {totalTax > 0 && (
                 <div className="flex justify-between text-gray-700">
-                  <span>Tax:</span>
+                  <span>Tax</span>
                   <span className="font-medium">{formatCurrency(totalTax)}</span>
                 </div>
               )}
-              {invoice.amount_paid > 0 && (
-                <div className="flex justify-between text-green-700">
-                  <span>Amount Paid:</span>
-                  <span className="font-medium">{formatCurrency(invoice.amount_paid)}</span>
+              <div className="flex justify-between text-gray-700 pt-2 border-t border-gray-200">
+                <span>Invoice Total</span>
+                <span className="font-semibold">{formatCurrency(total)}</span>
+              </div>
+              {invoice.is_paid && invoice.tip_amount != null && parseFloat(invoice.tip_amount) > 0 && (
+                <div className="flex justify-between text-gray-700">
+                  <span>Tip</span>
+                  <span className="font-medium">{formatCurrency(invoice.tip_amount)}</span>
                 </div>
               )}
               <div className="flex justify-between text-lg font-bold text-gray-900 pt-3 border-t-2 border-gray-300">
-                <span>Total:</span>
-                <span>{formatCurrency(total)}</span>
+                <span>{invoice.is_paid ? 'Total Paid' : 'Total'}</span>
+                <span className={invoice.is_paid ? 'text-green-700' : ''}>
+                  {formatCurrency(invoice.is_paid ? parseFloat(invoice.amount_paid) : total)}
+                </span>
               </div>
-              {invoice.amount_due > 0 && (
+              {!invoice.is_paid && invoice.amount_due > 0 && (
                 <div className="flex justify-between text-lg font-bold text-red-600 pt-2">
-                  <span>Amount Due:</span>
+                  <span>Amount Due</span>
                   <span>{formatCurrency(invoice.amount_due)}</span>
                 </div>
               )}
             </div>
           </div>
+
+          {/* Tip Section - only when unpaid and amount due */}
+          {!invoice.is_paid && invoice.amount_due > 0 && (
+            <div className="px-8 py-6 border-t border-gray-200 bg-white">
+              <h3 className="text-lg font-semibold text-gray-900 mb-3">Add a tip (optional)</h3>
+              <div className="flex flex-wrap gap-2 mb-3">
+                {[10, 20, 30].map((amount) => (
+                  <button
+                    key={amount}
+                    type="button"
+                    onClick={() => {
+                      setTipAmount(amount);
+                      setCustomTipValue('');
+                    }}
+                    className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                      tipAmount === amount && !customTipValue
+                        ? 'bg-blue-600 text-white'
+                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                    }`}
+                  >
+                    +{formatCurrency(amount)}
+                  </button>
+                ))}
+                <div className="flex items-center gap-2">
+                  <span className="text-gray-600">Custom:</span>
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    placeholder="0.00"
+                    value={customTipValue}
+                    onChange={(e) => {
+                      const v = e.target.value;
+                      setCustomTipValue(v);
+                      const n = parseFloat(v);
+                      setTipAmount(isNaN(n) || n < 0 ? 0 : n);
+                    }}
+                    className="w-24 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  />
+                </div>
+              </div>
+              {tipAmount > 0 && (
+                <div className="mb-2">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Tip note (optional)</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. Thank you!"
+                    value={tipNotes}
+                    onChange={(e) => setTipNotes(e.target.value)}
+                    className="w-full max-w-md px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  />
+                </div>
+              )}
+              {tipAmount > 0 && (
+                <p className="text-sm text-gray-600">
+                  Tip: {formatCurrency(tipAmount)} — Total to pay: {formatCurrency(totalWithTip)}
+                </p>
+              )}
+            </div>
+          )}
 
           {/* Signature Section */}
           {invoice.signature && (
@@ -611,7 +688,7 @@ const InvoiceView = () => {
                   ) : (
                     <>
                       <CreditCard className="w-5 h-5" />
-                      Pay {formatCurrency(invoice.amount_due)}
+                      Pay {formatCurrency(totalWithTip)}
                     </>
                   )}
                 </button>
